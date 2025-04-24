@@ -1,5 +1,5 @@
 {
-  "project_name": "MBRS",
+  "project_name": "MBRS_DF",
   "with_diffusion": false,
   "only_decoder": false,
   "epoch_number": 101,
@@ -14,6 +14,6 @@
   "message_length": 64,
   "lr": 1e-3,
   "noise_layers": [
-    "Combined([JpegMask(50),Jpeg(50),Identity()])"
+    "Combined([JpegMask(50), Jpeg(50), Identity(), GF(0.5), DeepfakeProxy(8), RegionalDestruction(0.4, 'noise')])"
   ]
 }

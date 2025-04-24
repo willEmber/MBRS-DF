@@ -1,5 +1,6 @@
 from .Encoder_MP_Decoder import *
 from .Discriminator import Discriminator
+import kornia
 
 
 class Network:
@@ -42,6 +43,12 @@ class Network:
 		self.discriminator_weight = 0.0001
 		self.encoder_weight = 1
 		self.decoder_weight = 10
+		
+		# MBRS-DF: 添加Deepfake敏感性权重
+		self.deepfake_fragility_weight = 8.0
+		
+		# 记录当前选择的噪声层类型
+		self.current_noise_type = "benign"  # 默认为良性操作
 
 	def train(self, images: torch.Tensor, messages: torch.Tensor):
 		self.encoder_decoder.train()
@@ -50,6 +57,10 @@ class Network:
 		with torch.enable_grad():
 			# use device to compute
 			images, messages = images.to(self.device), messages.to(self.device)
+			
+			# 保存当前选择的噪声层类型
+			self.current_noise_type = self.encoder_decoder.module.noise.get_current_noise_type()
+			
 			encoded_images, noised_images, decoded_messages = self.encoder_decoder(images, messages)
 
 			'''
@@ -81,12 +92,22 @@ class Network:
 			# RAW : the encoded image should be similar to cover image
 			g_loss_on_encoder = self.criterion_MSE(encoded_images, images)
 
-			# RESULT : the decoded message should be similar to the raw message
-			g_loss_on_decoder = self.criterion_MSE(decoded_messages, messages)
+			# RESULT : 根据噪声类型应用条件化损失
+			if self.current_noise_type == "deepfake":
+				# 对于Deepfake噪声，我们希望解码器无法正确解码消息（最大化解码错误）
+				# 创建一个"全错"的消息目标，与原始消息完全相反
+				target_error = 1.0 - messages  # 如果消息是0，目标为1；如果是1，目标为0
+				g_loss_on_decoder = self.criterion_MSE(decoded_messages, target_error)
+				# 使用单独的权重来控制Deepfake的敏感程度
+				decoder_weight = self.deepfake_fragility_weight
+			else:
+				# 对于良性操作，我们希望解码器能正确解码消息（最小化解码错误）
+				g_loss_on_decoder = self.criterion_MSE(decoded_messages, messages)
+				decoder_weight = self.decoder_weight
 
 			# full loss
 			g_loss = self.discriminator_weight * g_loss_on_discriminator + self.encoder_weight * g_loss_on_encoder + \
-					 self.decoder_weight * g_loss_on_decoder
+					 decoder_weight * g_loss_on_decoder
 
 			g_loss.backward()
 			self.opt_encoder_decoder.step()
@@ -95,7 +116,7 @@ class Network:
 			psnr = kornia.losses.psnr_loss(encoded_images.detach(), images, 2)
 
 			# ssim
-			ssim = 1 - 2 * kornia.losses.ssim(encoded_images.detach(), images, window_size=5, reduction="mean")
+			ssim = 1 - 2 * kornia.losses.ssim(encoded_images.detach(), images, window_size=5)
 
 		'''
 		decoded message error rate
@@ -111,7 +132,8 @@ class Network:
 			"g_loss_on_encoder": g_loss_on_encoder,
 			"g_loss_on_decoder": g_loss_on_decoder,
 			"d_cover_loss": d_cover_loss,
-			"d_encoded_loss": d_encoded_loss
+			"d_encoded_loss": d_encoded_loss,
+			"noise_type": self.current_noise_type  # 添加噪声类型到结果
 		}
 		return result
 
@@ -121,6 +143,10 @@ class Network:
 		with torch.enable_grad():
 			# use device to compute
 			images, messages = images.to(self.device), messages.to(self.device)
+			
+			# 保存当前选择的噪声层类型
+			self.current_noise_type = self.encoder_decoder.module.noise.get_current_noise_type()
+			
 			encoded_images, noised_images, decoded_messages = self.encoder_decoder(images, messages)
 
 			'''
@@ -128,8 +154,14 @@ class Network:
 			'''
 			self.opt_encoder_decoder.zero_grad()
 
-			# RESULT : the decoded message should be similar to the raw message
-			g_loss = self.criterion_MSE(decoded_messages, messages)
+			# RESULT : 根据噪声类型应用条件化损失
+			if self.current_noise_type == "deepfake":
+				# 对于Deepfake噪声，我们希望解码器无法正确解码消息
+				target_error = 1.0 - messages
+				g_loss = self.criterion_MSE(decoded_messages, target_error)
+			else:
+				# 对于良性操作，我们希望解码器能正确解码消息
+				g_loss = self.criterion_MSE(decoded_messages, messages)
 
 			g_loss.backward()
 			self.opt_encoder_decoder.step()
@@ -138,7 +170,7 @@ class Network:
 			psnr = kornia.losses.psnr_loss(encoded_images.detach(), images, 2)
 
 			# ssim
-			ssim = 1 - 2 * kornia.losses.ssim(encoded_images.detach(), images, window_size=5, reduction="mean")
+			ssim = 1 - 2 * kornia.losses.ssim(encoded_images.detach(), images, window_size=5)
 
 		'''
 		decoded message error rate
@@ -154,7 +186,8 @@ class Network:
 			"g_loss_on_encoder": 0.,
 			"g_loss_on_decoder": 0.,
 			"d_cover_loss": 0.,
-			"d_encoded_loss": 0.
+			"d_encoded_loss": 0.,
+			"noise_type": self.current_noise_type  # 添加噪声类型到结果
 		}
 		return result
 
@@ -165,6 +198,10 @@ class Network:
 		with torch.no_grad():
 			# use device to compute
 			images, messages = images.to(self.device), messages.to(self.device)
+			
+			# 保存当前选择的噪声层类型
+			self.current_noise_type = self.encoder_decoder.module.noise.get_current_noise_type()
+			
 			encoded_images, noised_images, decoded_messages = self.encoder_decoder(images, messages)
 
 			'''
@@ -189,18 +226,24 @@ class Network:
 			# RAW : the encoded image should be similar to cover image
 			g_loss_on_encoder = self.criterion_MSE(encoded_images, images)
 
-			# RESULT : the decoded message should be similar to the raw message
-			g_loss_on_decoder = self.criterion_MSE(decoded_messages, messages)
+			# RESULT : 验证中也保持一致的条件化损失计算
+			if self.current_noise_type == "deepfake":
+				target_error = 1.0 - messages
+				g_loss_on_decoder = self.criterion_MSE(decoded_messages, target_error)
+				decoder_weight = self.deepfake_fragility_weight
+			else:
+				g_loss_on_decoder = self.criterion_MSE(decoded_messages, messages)
+				decoder_weight = self.decoder_weight
 
 			# full loss
 			g_loss = self.discriminator_weight * g_loss_on_discriminator + self.encoder_weight * g_loss_on_encoder + \
-					 self.decoder_weight * g_loss_on_decoder
+					 decoder_weight * g_loss_on_decoder
 
 			# psnr
 			psnr = kornia.losses.psnr_loss(encoded_images.detach(), images, 2)
 
 			# ssim
-			ssim = 1 - 2 * kornia.losses.ssim(encoded_images.detach(), images, window_size=5, reduction="mean")
+			ssim = 1 - 2 * kornia.losses.ssim(encoded_images.detach(), images, window_size=5)
 
 		'''
 		decoded message error rate
@@ -216,7 +259,8 @@ class Network:
 			"g_loss_on_encoder": g_loss_on_encoder,
 			"g_loss_on_decoder": g_loss_on_decoder,
 			"d_cover_loss": d_cover_loss,
-			"d_encoded_loss": d_encoded_loss
+			"d_encoded_loss": d_encoded_loss,
+			"noise_type": self.current_noise_type  # 添加噪声类型到结果
 		}
 
 		return result, (images, encoded_images, noised_images, messages, decoded_messages)

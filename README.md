@@ -2,40 +2,40 @@
 
 
 
-## MBRS: Enhancing Robustness of DNN-based Watermarking by Mini-Batch of Real and Simulated JPEG Compression
+## MBRS：通过真实和模拟JPEG压缩的小批量处理增强DNN水印的鲁棒性
 
 
 
-Zhaoyang  Jia, Han Fang, Weiming Zhang (from University of Science and Technology of China)
+Zhaoyang Jia, Han Fang, Weiming Zhang (来自中国科学技术大学)
 
 [[arXiv]](https://arxiv.org/abs/2108.08211) [[PDF]](https://arxiv.org/pdf/2108.08211) 
 
 
 
-> This is the source code of paper *MBRS : Enhancing Robustness of DNN-based Watermarking by Mini-Batch of Real and Simulated JPEG Compression*, which is received by ACM MM' 21 (oral). Please contact me in *issue* page or email jzy_ustc@mail.ustc.edu.cn if you find bugs. Thanks!
+> 这是论文*MBRS：通过真实和模拟JPEG压缩的小批量处理增强DNN水印的鲁棒性*的源代码，该论文被ACM MM'21接收（口头报告）。如果您发现任何bug，请在*issue*页面或通过邮件jzy_ustc@mail.ustc.edu.cn联系我。谢谢！
 
 
 ****
-### Updated 10/03/2021 : training of diffusion model
+### 2021/10/03更新：扩散模型的训练
 
-Because of the training process for models with diffusion model (details about diffusion model is in the [paper](https://arxiv.org/pdf/2108.08211)) is not stable, we update the training process for a more stable process. 
+由于使用扩散模型的模型训练过程（关于扩散模型的详细信息请参阅[论文](https://arxiv.org/pdf/2108.08211)）不够稳定，我们更新了训练过程以获得更稳定的效果。
 
-- **Raw training** is for 128x128 images and 30 bits message, and it's 256 dimensions after the Fully Connection embedding. Batch size is 16, and learning rate is 1e-3. We train it for 300 epochs and apply early stopping at 110 epoch, decided by the validation results. In this way we get the pretrained model and the result in the [paper](https://arxiv.org/pdf/2108.08211) is based on it. 
+- **原始训练**适用于128x128图像和30位消息，经过全连接嵌入后为256维。批次大小为16，学习率为1e-3。我们训练了300个周期，并根据验证结果在第110个周期应用早停策略。通过这种方式，我们获得了预训练模型，[论文](https://arxiv.org/pdf/2108.08211)中的结果就是基于此。
 
-- However, this training process is not stable for crop robustness ([Crop attack · Issue #2](https://github.com/jzyustc/MBRS/issues/2)), that is, the validation result for Crop varies from BER=2% to BER=25% for *Crop(p=3.5%)*, and it's hard to guarantee the as good results as we get. 
+- 然而，这种训练过程对于裁剪鲁棒性([Crop attack · Issue #2](https://github.com/jzyustc/MBRS/issues/2))不够稳定，也就是说，对于*Crop(p=3.5%)*，裁剪的验证结果在BER=2%到BER=25%之间变化，很难保证我们得到的良好结果。
 
-- To solve it, we **update the training process** in an easy but useful way. 
-  - First we train the model like in **raw training** for 100 epochs and apply early stop at 92 epoch to get a suboptimum model (BER = 20% and PSNR=29.75 for *Crop(p=3.5%)*).
-  - Then we finetune the model for 50 epochs with the same settings but learning rate=1e-4, and apply early stop at 13 epoch to get the optimum model (BER = 1.85% and PSNR=30.89 for *Crop(p=3.5%)*). 
+- 为了解决这个问题，我们以一种简单但有效的方式**更新了训练过程**。
+  - 首先，我们像**原始训练**一样训练模型100个周期，并在第92个周期应用早停策略，获得一个次优模型（对于*Crop(p=3.5%)*，BER = 20%，PSNR=29.75）。
+  - 然后，我们使用相同的设置但学习率=1e-4对模型进行50个周期的微调，并在第13个周期应用早停策略，获得最优模型（对于*Crop(p=3.5%)*，BER = 1.85%，PSNR=30.89）。
 
-Wish this can help you :) 
+希望这能帮到你 :)
 
 
 ****
 
-### Requirements
+### 环境要求
 
-We used these packages/versions in the development of this project.
+我们在开发此项目时使用了以下软件包/版本。
 
 - Pytorch `1.5.0`
 - torchvision `0.3.0a0+ec20315`
@@ -47,9 +47,9 @@ We used these packages/versions in the development of this project.
 
 ****
 
-### Dataset prepare
+### 数据集准备
 
-Please download ImageNet or COCO datasets, and push them into `datasets` folder like this : 
+请下载ImageNet或COCO数据集，并将它们放入`datasets`文件夹，如下所示：
 
 ```
 ├── datasets
@@ -66,47 +66,152 @@ Please download ImageNet or COCO datasets, and push them into `datasets` folder 
 ├── results
 ```
 
-For more details about the used datasets, please  read the original [paper](https://arxiv.org/pdf/2108.08211).
+有关所使用数据集的更多详细信息，请阅读原始[论文](https://arxiv.org/pdf/2108.08211)。
 
 
 
-### Pretrained Models
+### 预训练模型
 
-Please download pretrained models in [Google Drive](https://drive.google.com/drive/folders/1A_SAqvU2vMsHxki0s9m9rKa-g8B6aghe?usp=sharing) and put the in path `results/xxx/models/`. (xxx is the name of the project, e.g. MBRS_256_m256)
+请在[Google Drive](https://drive.google.com/drive/folders/1A_SAqvU2vMsHxki0s9m9rKa-g8B6aghe?usp=sharing)下载预训练模型，并将它们放在`results/xxx/models/`路径下。（xxx是项目名称，例如MBRS_256_m256）
 
 
 ****
 
+### 环境配置指南
 
-### Train
+以下是使用Conda创建虚拟环境并配置项目的详细步骤：
 
-Change the settings in json file `train_settings.json`, then run :
+1. **安装Anaconda或Miniconda**：
+   - 如果尚未安装，请从[Anaconda官网](https://www.anaconda.com/products/distribution)或[Miniconda官网](https://docs.conda.io/en/latest/miniconda.html)下载并安装
+
+2. **创建虚拟环境**：
+   ```bash
+   # 创建名为mbrs的环境，指定Python版本为3.7
+   conda create -n mbrs python=3.7
+   # 激活环境
+   conda activate mbrs
+   ```
+
+3. **安装PyTorch和torchvision**：
+   ```bash
+   # 安装指定版本的PyTorch和torchvision
+   conda install pytorch==1.5.0 torchvision==0.6.0 cudatoolkit=10.1 -c pytorch
+   # 注意：如果您没有GPU，请使用以下命令
+   # conda install pytorch==1.5.0 torchvision==0.6.0 cpuonly -c pytorch
+   ```
+
+4. **安装其他依赖项**：
+   ```bash
+   # 安装其他必要的软件包
+   pip install kornia==0.3.0
+   conda install numpy==1.16.4 pillow==6.0.0 scipy==1.3.0
+   pip install matplotlib tqdm
+   ```
+
+5. **克隆代码库**（如果您尚未下载）：
+   ```bash
+   git clone https://github.com/jzyustc/MBRS.git
+   cd MBRS
+   ```
+
+### 运行项目
+
+1. **数据集准备**：
+   - 按照前面"数据集准备"部分的说明准备数据集
+   - 确保数据集结构正确
+
+2. **下载预训练模型**（可选）：
+   - 如果您想跳过训练过程，请下载预训练模型
+   - 将模型文件放在`results/xxx/models/`目录中
+
+3. **配置训练参数**：
+   - 编辑`train_settings.json`文件，根据您的需求调整参数
+   - 主要参数包括：
+     ```json
+     {
+       "project_name": "MBRS_256_m256",
+       "train_path": "./datasets/train",
+       "validation_path": "./datasets/validation",
+       "image_size": 128,
+       "message_length": 30,
+       "batch_size": 16,
+       "learning_rate": 1e-3,
+       "epochs": 100
+     }
+     ```
+
+4. **开始训练**：
+   ```bash
+   python train.py
+   ```
+   - 对于微调，可以修改`train_settings.json`中的学习率为1e-4，并设置`load_model: true`
+   - 重新运行训练：
+     ```bash
+     python train.py
+     ```
+
+5. **测试模型**：
+   - 编辑`test_settings.json`文件，设置测试参数
+   - 运行测试脚本：
+     ```bash
+     python test.py
+     ```
+
+6. **查看结果**：
+   - 训练和测试结果将保存在`results/xxx/`目录中
+   - 检查日志文件了解性能指标
+   - 查看生成的水印图像和提取结果
+
+### 常见问题解决
+
+1. **CUDA错误**：
+   - 确认您的CUDA版本与PyTorch兼容
+   - 尝试使用`nvidia-smi`命令检查GPU状态
+   - 如果出现内存不足错误，尝试减小批次大小
+
+2. **数据集加载问题**：
+   - 确保数据集路径正确
+   - 验证图像格式是否支持（JPG/PNG）
+   - 检查是否有损坏的图像文件
+
+3. **训练不稳定**：
+   - 按照更新后的训练过程进行（先训练后微调）
+   - 尝试调整学习率和批次大小
+   - 确保早停机制正常工作
+
+如有更多问题，请查看GitHub仓库的Issues页面或直接联系作者。
+
+****
+
+### 训练
+
+在json文件`train_settings.json`中更改设置，然后运行：
 
 ```bash
 python train.py
 ```
 
-The logging file and results will be saved at `results/xxx/`
+日志文件和结果将保存在`results/xxx/`中
 
 
 
-### Test
+### 测试
 
-Change the settings in json file `test_settings.json`, then run :
+在json文件`test_settings.json`中更改设置，然后运行：
 
 ```bash
 python test.py
 ```
 
-The logging file and results will be saved at `results/xxx/`
+日志文件和结果将保存在`results/xxx/`中
 
 
 ****
 
 
-### Citation
+### 引用
 
-Please cite our paper if you find this repo useful!
+如果您发现此代码库有用，请引用我们的论文！
 
 ```
 @inproceedings{jia2021mbrs,
@@ -121,5 +226,5 @@ Please cite our paper if you find this repo useful!
 
 
 
-Contact: [jzy_ustc@mail.ustc.edu.cn](mailto:jzy_ustc@mail.ustc.edu.cn)
+联系方式: [jzy_ustc@mail.ustc.edu.cn](mailto:jzy_ustc@mail.ustc.edu.cn)
 

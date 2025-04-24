@@ -1,0 +1,25 @@
+# Datasets
+datasets/
+
+# Results (Logs, models, images - adjust if needed)
+results/
+
+# Temporary files
+temp/
+
+# Python cache and virtual environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.venv/
+env/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE specific
+.vscode/
+.idea/
