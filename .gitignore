@@ -3,6 +3,7 @@ datasets/
 
 # Results (Logs, models, images - adjust if needed)
 results/
+results.zip  # Explicitly ignore results.zip at the root
 
 # Temporary files
 temp/
