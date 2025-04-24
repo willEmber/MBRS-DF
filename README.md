@@ -1,22 +1,32 @@
-# MBRS 
+# MBRS-DF: MBRS for Deepfake Detection
 
+## MBRS：通过真实和模拟JPEG压缩的小批量处理增强DNN水印的鲁棒性 (MBRS-DF 变体)
 
+原始作者: Zhaoyang Jia, Han Fang, Weiming Zhang (来自中国科学技术大学)
+MBRS-DF 修改者: [stdlibh]
 
-## MBRS：通过真实和模拟JPEG压缩的小批量处理增强DNN水印的鲁棒性
+原始论文: [[arXiv]](https://arxiv.org/abs/2108.08211) [[PDF]](https://arxiv.org/pdf/2108.08211)
 
-
-
-Zhaoyang Jia, Han Fang, Weiming Zhang (来自中国科学技术大学)
-
-[[arXiv]](https://arxiv.org/abs/2108.08211) [[PDF]](https://arxiv.org/pdf/2108.08211) 
-
-
-
-> 这是论文*MBRS：通过真实和模拟JPEG压缩的小批量处理增强DNN水印的鲁棒性*的源代码，该论文被ACM MM'21接收（口头报告）。如果您发现任何bug，请在*issue*页面或通过邮件jzy_ustc@mail.ustc.edu.cn联系我。谢谢！
-
+> 这是论文 *MBRS：通过真实和模拟JPEG压缩的小批量处理增强DNN水印的鲁棒性* 的源代码的一个修改版本，旨在使水印对 Deepfake 操作敏感，同时保持对常见良性操作的鲁棒性。此变体称为 MBRS-DF。如果您发现任何bug，请在 *issue* 页面或通过邮件联系我。谢谢！
 
 ****
-### 2021/10/03更新：扩散模型的训练
+### MBRS-DF 核心思想
+
+MBRS-DF 引入了以下关键修改：
+
+1.  **Deepfake 模拟噪声层**: 添加了多种模拟 Deepfake 操作效果的噪声层，例如：
+    *   `DeepfakeProxy`: 使用轻量级自编码器模拟重建过程。
+    *   `RegionalDestruction`: 模拟对图像特定区域（如人脸）的破坏。
+    *   `FrequencyModulation`: 模拟 Deepfake 可能引入的频率特征变化。
+2.  **条件化损失函数**: 在训练过程中，根据当前应用的噪声类型动态调整损失函数：
+    *   **良性操作 (如 JPEG, 模糊)**: 训练解码器以最小化消息恢复错误率，增强鲁棒性。
+    *   **Deepfake 模拟操作**: 训练解码器以最大化消息恢复错误率（目标是使水印失效），增强脆弱性/敏感性。
+3.  **混合噪声训练**: 在训练期间，随机从良性操作和 Deepfake 模拟操作中选择噪声层，使模型同时学习鲁棒性和脆弱性。
+
+目标是生成一种水印，它能抵抗常规图像处理，但在图像被 Deepfake 修改后会被破坏，从而提供一种检测 Deepfake 的信号。
+
+****
+### 2021/10/03更新：扩散模型的训练 (原始 MBRS)
 
 由于使用扩散模型的模型训练过程（关于扩散模型的详细信息请参阅[论文](https://arxiv.org/pdf/2108.08211)）不够稳定，我们更新了训练过程以获得更稳定的效果。
 
@@ -35,21 +45,22 @@ Zhaoyang Jia, Han Fang, Weiming Zhang (来自中国科学技术大学)
 
 ### 环境要求
 
-我们在开发此项目时使用了以下软件包/版本。
+我们在开发此项目时使用了以下软件包/版本。 (MBRS-DF 未引入新的核心依赖)
 
 - Pytorch `1.5.0`
-- torchvision `0.3.0a0+ec20315`
+- torchvision `0.6.0` (注意：原始文档中 torchvision 版本有误，根据环境配置部分应为 0.6.0)
 - kornia `0.3.0`
 - numpy `1.16.4`
 - Pillow `6.0.0`
 - scipy `1.3.0`
-
+- matplotlib (用于可视化)
+- tqdm (用于进度条)
 
 ****
 
 ### 数据集准备
 
-请下载ImageNet或COCO数据集，并将它们放入`datasets`文件夹，如下所示：
+请下载 ImageNet 或 COCO 数据集，并将它们放入 `datasets` 文件夹，如下所示：
 
 ```
 ├── datasets
